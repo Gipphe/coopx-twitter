@@ -1,0 +1,14 @@
+{
+	"name": "twitter-stream",
+	"version": "0.1.0",
+	"license": "MIT",
+	"author": {
+		"email": "victorbakke93@gmail.com",
+		"name": "Victor Nascimento Bakke",
+		"url": "https://github.com/Gipphe"
+	},
+	"devDependencies": {
+		"lerna": "^3.22.1"
+	},
+	"dependencies": {}
+}
