@@ -1,0 +1,11 @@
+node_modules/
+.env*
+yarn-error.log*
+
+.gitignore
+
+Dockerfile
+.dockerignore
+
+elm-stuff/
+elm-analyse.json

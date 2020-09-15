@@ -1,0 +1,20 @@
+{
+	"name": "frontend",
+	"version": "0.1.0",
+	"license": "MIT",
+	"author": {
+		"email": "victorbakke93@gmail.com",
+		"name": "Victor Nascimento Bakke",
+		"url": "https://github.com/Gipphe"
+	},
+	"scripts": {
+		"build": "elm-app build",
+		"start": "elm-app start",
+		"docker:build": "docker build --build-arg ELM_APP_API_BASE_URL --build-arg ELM_APP_API_WS_URL -t coop-twitter-frontend .",
+		"docker:run": "docker run -it --env-file .env -p 3000:3000 coop-twitter-frontend"
+	},
+	"dependencies": {
+		"create-elm-app": "^4.2.26",
+		"elm-test": "^0.19.1-revision2"
+	}
+}
