@@ -7,6 +7,10 @@
 		"name": "Victor Nascimento Bakke",
 		"url": "https://github.com/Gipphe"
 	},
+	"scripts": {
+		"start": "yarn compose:up",
+		"compose:up": "docker-compose up --build --abort-on-container-exit"
+	},
 	"devDependencies": {
 		"lerna": "^3.22.1"
 	},

@@ -1,0 +1,23 @@
+version: "3.4"
+services:
+  backend:
+    build:
+      context: ./packages/backend
+    container_name: backend
+    env_file:
+      - .env
+    ports:
+      - 8081:8080
+
+  frontend:
+    build:
+      context: ./packages/frontend
+      args:
+        ELM_APP_API_BASE_URL: http://localhost:8081/api
+        ELM_APP_API_WS_URL: ws://localhost:8081
+      target: frontend
+    container_name: frontend
+    depends_on:
+      - backend
+    ports:
+      - 8080:8080
