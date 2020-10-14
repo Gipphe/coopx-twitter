@@ -599,10 +599,11 @@ viewTweet tz idx tweet =
             , bottom = 1
             }
         , Border.color Color.primaryText
+        , El.width El.fill
         ]
         [ viewProfilePicture tweet.author.profileImageUrl
         , El.column [ El.spacing 10, El.width El.fill ]
-            [ El.row [ El.spacing 20 ]
+            [ El.row [ El.spacing 20, El.width El.fill ]
                 [ viewTweetTime tz tweet.createdAt
                 , viewUsername tweet.author
                 ]
