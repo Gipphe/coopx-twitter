@@ -4,43 +4,11 @@ import AbortController from 'abort-controller';
 import qs from 'qs';
 import { StreamDelay } from './StreamDelay';
 import { mkHeaders } from './Env';
-import { buildURL } from './Util';
+import { buildURL, TimerControls } from './Util';
 import { TweetListeners } from './TweetListeners';
 import { Heartbeat, isKeepAliveToken } from './Heartbeat';
+import { StreamOptions } from './StreamOptions';
 
-const streamOptions = {
-	expansions: [
-		'author_id',
-	],
-	media: {
-		fields: [
-			'height',
-			'width',
-			'preview_image_url',
-			'type',
-			'url',
-		],
-	},
-	tweet: {
-		fields: [
-			'attachments',
-			'author_id',
-			'created_at',
-			'id',
-			'text',
-		],
-	},
-	user: {
-		fields: [
-			'created_at',
-			'id',
-			'profile_image_url',
-			'url',
-			'username',
-			'verified',
-		],
-	},
-};
 const qsOpts: qs.IStringifyOptions = {
 	arrayFormat: 'comma',
 	allowDots: true,
@@ -65,14 +33,26 @@ const logUnknown = (e: unknown): void => {
 	console.log(`Unknown error: ${e}`);
 };
 
-export class TweetStream {
+export class TweetStream<T> {
 	private listeners: TweetListeners = new TweetListeners();
 
-	private streamDelay: StreamDelay = new StreamDelay();
+	private streamDelay: StreamDelay<T>;
 
 	private hasInitialized = false;
 
-	private createWritableDelegator(heartbeat: Heartbeat): NodeJS.WritableStream {
+	private timerControls: TimerControls<T>;
+
+	private fetchFn: typeof fetch;
+
+	private streamOptions: StreamOptions | null = null;
+
+	public constructor(fetchFn: typeof fetch, timerControls: TimerControls<T>) {
+		this.timerControls = timerControls;
+		this.streamDelay = new StreamDelay(timerControls);
+		this.fetchFn = fetchFn;
+	}
+
+	private createWritableDelegator(heartbeat: Heartbeat<T>): NodeJS.WritableStream {
 		return new Writable({
 			write: (
 				data: string | Buffer,
@@ -81,16 +61,15 @@ export class TweetStream {
 			): boolean => {
 				const res = data.toString('utf8');
 
-				if (isKeepAliveToken(res)) {
-					heartbeat.stayinAlive();
-					return true;
+				if (!isKeepAliveToken(res)) {
+					this.listeners.sendTweet(res);
+
+					if (cb) {
+						cb(null);
+					}
 				}
 
-				this.listeners.sendTweet(res);
-
-				if (cb) {
-					cb(null);
-				}
+				heartbeat.keepAlive();
 				return true;
 			},
 		});
@@ -98,10 +77,10 @@ export class TweetStream {
 
 	private async streamTweets(): Promise<void> {
 		const controller = new AbortController();
-		const heartbeat = new Heartbeat(controller);
-		const url = buildURL(`/2/tweets/search/stream?${qs.stringify(streamOptions, qsOpts)}`);
+		const heartbeat = new Heartbeat(controller, this.timerControls);
+		const url = buildURL(`/2/tweets/search/stream?${qs.stringify(this.streamOptions, qsOpts)}`);
 		heartbeat.start();
-		const x = await fetch(url, {
+		const x = await this.fetchFn(url, {
 			method: 'GET',
 			headers: mkHeaders(),
 			signal: controller.signal,
@@ -125,20 +104,19 @@ export class TweetStream {
 			if (e instanceof Response && isTooManyRequestsResponse(e)) {
 				logTooManyRequests(e);
 				this.streamDelay.waitAfterTooManyRequests((delay) => {
-					const until = new Date(Date.now() + delay);
-					this.listeners.sendWaiting(until);
+					this.listeners.sendWaitingUntilDelay(delay);
 					return () => this.fetch();
 				});
 			} else if (e instanceof Response) {
 				logHTTPError(e);
 				this.streamDelay.waitAfterHTTPError((delay) => {
-					this.listeners.sendWaiting(delay);
+					this.listeners.sendWaitingUntilDelay(delay);
 					return () => this.fetch();
 				});
 			} else {
 				logUnknown(e);
 				this.streamDelay.waitAfterNetworkError((delay) => {
-					this.listeners.sendWaiting(delay);
+					this.listeners.sendWaitingUntilDelay(delay);
 					return () => this.fetch();
 				});
 			}
@@ -147,18 +125,22 @@ export class TweetStream {
 		this.fetch();
 	}
 
-	public registerListener = (f: ChunkConsumer): string => {
+	public registerListener(f: ChunkConsumer): string {
 		const id = this.listeners.register(f);
 		if (!this.hasInitialized) {
 			console.log('Starting stream fetch');
 			this.hasInitialized = true;
 			this.fetch();
 		}
-		this.streamDelay.ifWaiting((delay) => this.listeners.sendWaiting(delay));
+		this.streamDelay.ifWaiting(this.listeners.sendWaitingUntilDelay.bind(this.listeners));
 		return id;
 	}
 
-	public unregisterListener = (id: string): void => {
+	public unregisterListener(id: string): void {
 		this.listeners.unregister(id);
+	}
+
+	public setStreamOptions(streamOptions: StreamOptions): void {
+		this.streamOptions = streamOptions;
 	}
 }

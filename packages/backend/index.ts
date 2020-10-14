@@ -10,8 +10,43 @@ import cors from 'cors';
 import { buildURL } from './lib/Util';
 import { mkHeaders } from './lib/Env';
 import { TweetStream } from './lib/TweetStream';
+import { StreamOptions } from './lib/StreamOptions';
 
 const port = process.env.PORT || 8080;
+
+const streamOptions: StreamOptions = {
+	expansions: [
+		'author_id',
+	],
+	media: {
+		fields: [
+			'height',
+			'width',
+			'preview_image_url',
+			'type',
+			'url',
+		],
+	},
+	tweet: {
+		fields: [
+			'attachments',
+			'author_id',
+			'created_at',
+			'id',
+			'text',
+		],
+	},
+	user: {
+		fields: [
+			'created_at',
+			'id',
+			'profile_image_url',
+			'url',
+			'username',
+			'verified',
+		],
+	},
+};
 
 const handleResponse = async (resp: Response, res: Express.Response<string>): Promise<void> => {
 	if (!resp.ok) {
@@ -46,7 +81,9 @@ const app = express()
 
 const server = http.createServer(app);
 const wss = new ws.Server({ server });
-const tweetStream = new TweetStream();
+const tweetStream = new TweetStream(fetch, global);
+
+tweetStream.setStreamOptions(streamOptions);
 
 wss.on('connection', (socket: WebSocket) => {
 	const id = tweetStream.registerListener((data: string): void => {

@@ -33,6 +33,7 @@ module.exports = {
 		'no-dupe-class-members': 'off',
 		'lines-between-class-members': ['error', 'always', { exceptAfterSingleLine: true }],
 		'@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+		'no-unused-expressions': 'off',
 		'import/extensions': [
 			'error',
 			'ignorePackages',
@@ -41,6 +42,7 @@ module.exports = {
 				ts: 'never',
 			},
 		],
+		'import/no-extraneous-dependencies': ['error', { devDependencies: ['**/*.spec.ts'] }],
 		'implicit-arrow-linebreak': 'off',
 		'import/prefer-default-export': 'off',
 		'no-console': 'off',

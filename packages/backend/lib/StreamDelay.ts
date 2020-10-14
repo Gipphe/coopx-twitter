@@ -1,12 +1,36 @@
+import { TimerControls } from './Util';
+
 export type DelayResetter = () => void;
+
+/**
+ * Function to be called surrounding the wait. First, before the wait, it is called
+ * with the duration of the upcoming delay in milliseconds. The function returned from this
+ * first call is then called after the actual wait has passed. This second invocation is passed
+ * a function used to reset the wait duration, equivalent to calling `reset` on this
+ * `StreamDelay`
+ */
 export type DelayHandler<T> = (delay: number) => (resetDelay: DelayResetter) => T;
 
-export class StreamDelay {
+/**
+ * Manages the duration for retrying the Twitter API 2.0 stream endpoints for the various scenarios
+ * described in their
+ * [specification](https://developer.twitter.com/en/docs/twitter-api/tweets/filtered-stream/integrate/handling-disconnections).
+ */
+export class StreamDelay<TimerRef> {
 	private isWaiting = false;
 
-	private timer: NodeJS.Timeout | null = null;
+	private timer: TimerRef | null = null;
 
 	private delay = 0;
+
+	private timerControls: TimerControls<TimerRef>;
+
+	/**
+	 * @param timerControls Implementations for `setTimeout` and `clearTimeout` to use.
+	 */
+	public constructor(timerControls: TimerControls<TimerRef>) {
+		this.timerControls = timerControls;
+	}
 
 	private incDelay(f: (x: number) => number): void {
 		this.delay = f(this.delay);
@@ -18,7 +42,7 @@ export class StreamDelay {
 
 	private clearTimer(): void {
 		if (this.timer !== null) {
-			clearTimeout(this.timer);
+			this.timerControls.clearTimeout(this.timer);
 			this.timer = null;
 		}
 	}
@@ -49,7 +73,7 @@ export class StreamDelay {
 		console.log(`Waiting until ${untilDate.toISOString()}`);
 		const runAfterDelay = runBeforeDelay(this.delay);
 		return new Promise((resolve) => {
-			this.timer = setTimeout(() => {
+			this.timer = this.timerControls.setTimeout(() => {
 				this.isWaiting = false;
 				resolve(runAfterDelay(this.resetDelay.bind(this)));
 			}, this.delay);
@@ -62,24 +86,47 @@ export class StreamDelay {
 		return x;
 	}
 
+	/**
+	 * Waits before calling the passed `DelayHandler` according to Twitter API 2.0's specificaiton
+	 * for retry delays in the case of receiving a "TooManyRequests" response from the API.
+	 * @param f Function to be called surrounding the wait.
+	 */
 	public async waitAfterTooManyRequests<T>(f: DelayHandler<T>): Promise<T> {
 		return this.waitAndInc(f, this.incDelayTooManyRequests.bind(this));
 	}
 
+	/**
+	 * Waits before calling the passed `DelayHandler` according to Twitter API 2.0's specificaiton
+	 * for retry delays in the case of miscellaneous network errors.
+	 * @param f Function to be called surrounding the wait.
+	 */
 	public async waitAfterNetworkError<T>(f: DelayHandler<T>): Promise<T> {
 		return this.waitAndInc(f, this.incDelayNetworkError.bind(this));
 	}
 
+	/**
+	 * Waits before calling the passed `DelayHandler` according to Twitter API 2.0's specificaiton
+	 * for retry delays in the case of miscellanous HTTP Errors.
+	 * @param f Function to be called surrounding the wait.
+	 */
 	public async waitAfterHTTPError<T>(f: DelayHandler<T>): Promise<T> {
 		return this.waitAndInc(f, this.incDelayHTTPError.bind(this));
 	}
 
+	/**
+	 * Calls the passed function with the current wait duration if this `StreamDelay` is currently
+	 * waiting. Otherwise, does nothing.
+	 * @param f Function to call if currently waiting.
+	 */
 	public ifWaiting(f: (delay: number) => void): void {
 		if (this.isWaiting) {
 			f(this.delay);
 		}
 	}
 
+	/**
+	 * Resets the current duration and cancels the current timeout if currently waiting.
+	 */
 	public reset(): void {
 		this.resetDelay();
 		this.clearTimer();
