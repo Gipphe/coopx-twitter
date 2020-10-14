@@ -10,6 +10,6 @@
     "outDir": "dist"
   },
   "include": [
-    "lib/**/*.ts"
+    "src/**/*.ts"
   ]
 }
