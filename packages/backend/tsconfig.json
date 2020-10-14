@@ -1,43 +1,15 @@
 {
+  "extends": "@tsconfig/node12/tsconfig.json",
   "compilerOptions": {
-    "target": "es5",
-    "module": "commonjs",
-    "strict": true,
-    "jsx": "preserve",
-    "importHelpers": true,
-    "isolatedModules": true,
-    "moduleResolution": "node",
-    "experimentalDecorators": true,
-    "forceConsistentCasingInFileNames": true,
-    "downlevelIteration": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "resolveJsonModule": true,
     "noUnusedLocals": true,
     "alwaysStrict": true,
     "noUnusedParameters": true,
     "noImplicitReturns": true,
     "noImplicitAny": true,
-    "removeComments": true,
-    "sourceMap": true,
-    "baseUrl": ".",
-    "lib": [
-      "es6",
-      "dom",
-      "dom.iterable",
-      "scripthost"
-    ],
-    "paths": {
-      "typings": [
-        "typings"
-      ]
-    }
+    "declaration": true,
+    "outDir": "dist"
   },
   "include": [
-    "index.ts",
     "lib/**/*.ts"
-  ],
-  "exclude": [
-    "node_modules"
   ]
 }
