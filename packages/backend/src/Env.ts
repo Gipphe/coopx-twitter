@@ -1,3 +1,4 @@
+export const port = process.env.PORT || 8080;
 const token = process.env.API_TOKEN;
 
 if (token === undefined) {

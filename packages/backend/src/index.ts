@@ -9,11 +9,9 @@ import { ParamsDictionary, Query } from 'express-serve-static-core';
 import fetch, { Response } from 'node-fetch';
 import cors from 'cors';
 import { buildURL } from './Util';
-import { mkHeaders } from './Env';
+import { mkHeaders, port } from './Env';
 import { TweetStream } from './TweetStream';
 import { StreamOptions } from './StreamOptions';
-
-const port = process.env.PORT || 8080;
 
 const streamOptions: StreamOptions = {
 	expansions: [
