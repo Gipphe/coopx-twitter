@@ -76,7 +76,7 @@ export interface FieldOpts<T> {
 export interface StreamOptions {
 	expansions?: Expansion[];
 	media?: FieldOpts<MediaField>;
-	place?: FieldOpts<PlaceField>
+	place?: FieldOpts<PlaceField>;
 	poll?: FieldOpts<PollField>;
 	tweet?: FieldOpts<TweetField>;
 	user?: FieldOpts<UserField>;

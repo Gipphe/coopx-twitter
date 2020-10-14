@@ -42,6 +42,8 @@ module.exports = {
 				ts: 'never',
 			},
 		],
+		semi: 'off',
+		'@typescript-eslint/semi': ['error'],
 		'import/no-extraneous-dependencies': ['error', { devDependencies: ['**/*.spec.ts'] }],
 		'implicit-arrow-linebreak': 'off',
 		'import/prefer-default-export': 'off',
