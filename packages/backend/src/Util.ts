@@ -1,14 +1,14 @@
 const apiBaseURL = 'https://api.twitter.com';
 
-const partitionRoute = (route: string): string => {
-	if (route.startsWith('/rules/')) {
-		return route.slice(7);
-	}
-	if (route.startsWith('rules/')) {
-		return route.slice(6);
-	}
-	if (route.startsWith('/')) {
-		return route.slice(1);
+const partitionRules = [
+	'/rules/',
+	'rules/',
+	'/',
+];
+const stripRoute = (route: string): string => {
+	const res = partitionRules.find((x) => route.startsWith(x));
+	if (res) {
+		return route.slice(res.length);
 	}
 	return route;
 };
@@ -19,7 +19,7 @@ const partitionRoute = (route: string): string => {
  * @param route Matched route string.
  */
 export const buildURL = (route: string): string => {
-	const apiRoute = partitionRoute(route);
+	const apiRoute = stripRoute(route);
 	return `${apiBaseURL}/${apiRoute}`;
 };
 
