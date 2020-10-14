@@ -30,8 +30,6 @@ if (!rulesUrl || !streamSocket) {
   try {
     const socket = new WebSocket(streamSocket);
     socket.addEventListener('message', (event) => {
-      console.log(event.data);
-      console.log(typeof event.data);
       app.ports.messageReceiver.send(event.data);
     });
     socket.addEventListener('close', () => {
