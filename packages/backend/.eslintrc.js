@@ -34,6 +34,7 @@ module.exports = {
 		'lines-between-class-members': ['error', 'always', { exceptAfterSingleLine: true }],
 		'@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
 		'no-unused-expressions': 'off',
+		'max-classes-per-file': 'off',
 		'import/extensions': [
 			'error',
 			'ignorePackages',

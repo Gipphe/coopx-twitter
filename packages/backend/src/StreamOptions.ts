@@ -73,6 +73,9 @@ export interface FieldOpts<T> {
 	fields: T[];
 }
 
+/**
+ * @see {@link https://developer.twitter.com/en/docs/twitter-api/tweets/filtered-stream/api-reference/get-tweets-search-stream}
+ */
 export interface StreamOptions {
 	expansions?: Expansion[];
 	media?: FieldOpts<MediaField>;

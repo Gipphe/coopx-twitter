@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import bodyParser from 'body-parser';
 import * as ws from 'ws';
 import WebSocket from 'ws';

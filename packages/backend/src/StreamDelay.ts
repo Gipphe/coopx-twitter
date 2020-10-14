@@ -69,8 +69,6 @@ export class StreamDelay<TimerRef> {
 
 	private waitForDelay<T>(runBeforeDelay: DelayHandler<T>): Promise<T> {
 		this.isWaiting = true;
-		const untilDate = new Date(Date.now() + this.delay);
-		console.log(`Waiting until ${untilDate.toISOString()}`);
 		const runAfterDelay = runBeforeDelay(this.delay);
 		return new Promise((resolve) => {
 			this.timer = this.timerControls.setTimeout(() => {

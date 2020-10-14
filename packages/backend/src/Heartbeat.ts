@@ -3,10 +3,6 @@ import { TimerControls } from './Util';
 
 const twentyThreeSeconds = 23000;
 
-export const keepAliveToken = '\r\n';
-export type KeepAliveToken = typeof keepAliveToken;
-export const isKeepAliveToken = (x: unknown): x is KeepAliveToken => x === keepAliveToken;
-
 /**
  * A timed controller that calls `abort` on the passed `AbortController` if `keepAlive` is not
  * called within 23 seconds. Every call to `keepAlive` resets the 23-second timer, until `end` is

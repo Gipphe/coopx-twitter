@@ -58,3 +58,19 @@ test.cb('never calls the abort controller if `end` is called before timeout', (t
 	t.deepEqual(clock.now, 28000);
 	t.end();
 });
+
+test.cb('calling end first does nothing', (t) => {
+	const clock = timers.createClock();
+	const ab = new AbortController();
+	const hb = new Heartbeat(ab, clock as NodeClock);
+
+	ab.signal.addEventListener('abort', () => {
+		t.fail('Abort was called');
+		t.end();
+	});
+
+	hb.end();
+	clock.tick(24000);
+	t.deepEqual(clock.now, 24000);
+	t.end();
+});

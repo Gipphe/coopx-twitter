@@ -36,3 +36,8 @@ export interface TimerControls<T> {
 	setTimeout(f: () => void, ms: number): T;
 	clearTimeout(x: T): void;
 }
+
+/**
+ * A function that handles a JSON chunk from the stream.
+ */
+export type ChunkConsumer = (data: string) => void;
