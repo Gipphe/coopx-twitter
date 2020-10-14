@@ -10,8 +10,8 @@ COPY ./src ./src
 COPY ./public ./public
 
 FROM base AS prod-build
-ARG ELM_APP_API_BASE_URL
-ARG ELM_APP_API_WS_URL
+ARG ELM_APP_API_RULES_URL
+ARG ELM_APP_API_STREAM_SOCKET
 RUN yarn build
 
 FROM node:12-alpine AS frontend

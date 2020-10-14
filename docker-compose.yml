@@ -13,8 +13,8 @@ services:
     build:
       context: ./packages/frontend
       args:
-        ELM_APP_API_BASE_URL: http://localhost:8081/api
-        ELM_APP_API_WS_URL: ws://localhost:8081
+        ELM_APP_API_RULES_URL: http://localhost:8081/rules
+        ELM_APP_API_STREAM_SOCKET: ws://localhost:8081
       target: frontend
     container_name: frontend
     depends_on:

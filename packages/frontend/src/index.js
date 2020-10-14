@@ -2,13 +2,13 @@ import './main.css';
 import { Elm } from './Main.elm';
 import * as serviceWorker from './serviceWorker';
 
-const apiBaseUrl = process.env.ELM_APP_API_BASE_URL;
-const websocketUrl = process.env.ELM_APP_API_WS_URL;
+const rulesUrl = process.env.ELM_APP_API_RULES_URL;
+const streamSocket = process.env.ELM_APP_API_STREAM_SOCKET;
 
 const root = document.getElementById('root');
 
-if (!apiBaseUrl || !websocketUrl) {
-  const e = 'The environment variables "ELM_APP_API_BASE_URL" and "ELM_APP_API_WS_URL" are required.';
+if (!rulesUrl || !streamSocket) {
+  const e = 'The environment variables "ELM_APP_API_RULES_URL" and "ELM_APP_API_STREAM_SOCKET" are required.';
   console.error(e);
   root.innerHTML = e;
   root.style.fontSize = '200%';
@@ -23,12 +23,12 @@ if (!apiBaseUrl || !websocketUrl) {
   const app = Elm.Main.init({
     node: root,
     flags: {
-      apiBaseUrl,
+      rulesUrl,
     }
   });
 
   try {
-    const socket = new WebSocket(websocketUrl);
+    const socket = new WebSocket(streamSocket);
     socket.addEventListener('message', (event) => {
       console.log(event.data);
       console.log(typeof event.data);

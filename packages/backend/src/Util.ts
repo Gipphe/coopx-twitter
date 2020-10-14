@@ -1,11 +1,11 @@
 const apiBaseURL = 'https://api.twitter.com';
 
 const partitionRoute = (route: string): string => {
-	if (route.startsWith('/api/')) {
-		return route.slice(5);
+	if (route.startsWith('/rules/')) {
+		return route.slice(7);
 	}
-	if (route.startsWith('api/')) {
-		return route.slice(4);
+	if (route.startsWith('rules/')) {
+		return route.slice(6);
 	}
 	if (route.startsWith('/')) {
 		return route.slice(1);

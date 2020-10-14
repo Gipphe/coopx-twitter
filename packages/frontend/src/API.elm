@@ -23,7 +23,7 @@ import Twitter.RuleWithID as RuleWithID exposing (RuleID, RuleWithID)
 
 type alias HttpConfig r =
     { r
-        | apiBaseUrl : String
+        | rulesUrl : String
     }
 
 
@@ -31,7 +31,7 @@ prependBaseUrl : HttpConfig r -> String -> String
 prependBaseUrl conf =
     let
         baseUrl =
-            conf.apiBaseUrl
+            conf.rulesUrl
     in
     if String.endsWith "/" baseUrl then
         (++) <| String.dropRight 1 baseUrl

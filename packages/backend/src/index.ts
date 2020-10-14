@@ -60,7 +60,7 @@ const handleResponse = async (resp: Response, res: Express.Response<string>): Pr
 const app = express()
 	.use(bodyParser.text({ type: () => true }))
 	.use(cors())
-	.post('/api/*', async (req: Express.Request<ParamsDictionary, string, string, Query>, res) => {
+	.post('/rules/*', async (req: Express.Request<ParamsDictionary, string, string, Query>, res) => {
 		const url = buildURL(req.originalUrl);
 		const resp = await fetch(url, {
 			method: 'POST',
@@ -69,7 +69,7 @@ const app = express()
 		});
 		await handleResponse(resp, res);
 	})
-	.get('/api/*', async (req: Express.Request<ParamsDictionary, string, void, Query>, res) => {
+	.get('/rules/*', async (req: Express.Request<ParamsDictionary, string, void, Query>, res) => {
 		const url = buildURL(req.originalUrl);
 		const resp = await fetch(url, { headers: mkHeaders() });
 		await handleResponse(resp, res);

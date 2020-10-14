@@ -10,7 +10,7 @@
 	"scripts": {
 		"build": "elm-app build",
 		"start": "elm-app start",
-		"docker:build": "docker build --build-arg ELM_APP_API_BASE_URL --build-arg ELM_APP_API_WS_URL -t coop-twitter-frontend .",
+		"docker:build": "docker build --build-arg ELM_APP_API_RULES_URL --build-arg ELM_APP_API_STREAM_SOCKET -t coop-twitter-frontend .",
 		"docker:run": "docker run -it --env-file .env -p 3000:3000 coop-twitter-frontend"
 	},
 	"dependencies": {

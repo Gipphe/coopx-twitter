@@ -88,7 +88,7 @@ type RuleMsg
 
 
 type alias Flags =
-    { apiBaseUrl : String
+    { rulesUrl : String
     }
 
 
@@ -129,7 +129,7 @@ portResponseDecoder =
 
 flagsDecoder : Decoder Flags
 flagsDecoder =
-    D.map Flags <| D.field "apiBaseUrl" D.string
+    D.map Flags <| D.field "rulesUrl" D.string
 
 
 
