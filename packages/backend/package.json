@@ -11,7 +11,16 @@
 		"start": "ts-node index.ts",
 		"docker:build": "docker build -t coopx_twitter_backend .",
 		"docker:run": "docker run --rm -it --env-file .env -e PORT=8080 -p 8080:8080 coopx_twitter_backend",
-		"lint": "eslint --ext .ts ."
+		"lint": "eslint --ext .ts .",
+		"test": "ava"
+	},
+	"ava": {
+		"extensions": [
+			"ts"
+		],
+		"require": [
+			"ts-node/register"
+		]
 	},
 	"dependencies": {
 		"@tsconfig/node12": "^1.0.7",
@@ -21,6 +30,7 @@
 		"@types/node": "^14.6.4",
 		"@types/node-fetch": "^2.5.7",
 		"@types/shortid": "^0.0.29",
+		"@types/sinonjs__fake-timers": "^6.0.2",
 		"@types/ws": "^7.2.6",
 		"abort-controller": "^3.0.0",
 		"body-parser": "^1.19.0",
@@ -35,8 +45,10 @@
 		"ws": "^7.3.1"
 	},
 	"devDependencies": {
+		"@sinonjs/fake-timers": "^6.0.1",
 		"@typescript-eslint/eslint-plugin": "^4.1.0",
 		"@typescript-eslint/parser": "^4.1.0",
+		"ava": "^3.13.0",
 		"eslint": "7.2.0",
 		"eslint-config-airbnb-base": "14.2.0",
 		"eslint-plugin-import": "2.21.2"
