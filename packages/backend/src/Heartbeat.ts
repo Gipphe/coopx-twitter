@@ -1,4 +1,5 @@
 import AbortController from 'abort-controller';
+import { Logger } from './Logger';
 import { TimerControls } from './Util';
 
 const twentyThreeSeconds = 23000;
@@ -15,16 +16,24 @@ export class Heartbeat<TimerRef> {
 
 	private timerControls: TimerControls<TimerRef>;
 
+	private logger: Logger;
+
 	/**
 	 * @param controller An `AbortController` to call should the timer expire.
 	 * @param timerControls Implementations for `setTimeout` and `clearTimeout` to use.
 	 */
-	public constructor(controller: AbortController, timerControls: TimerControls<TimerRef>) {
+	public constructor(
+		logger: Logger,
+		controller: AbortController,
+		timerControls: TimerControls<TimerRef>,
+	) {
 		this.controller = controller;
 		this.timerControls = timerControls;
+		this.logger = logger;
 	}
 
 	private signalAbort(): void {
+		this.logger.info('Aborting');
 		this.controller.abort();
 	}
 
@@ -49,6 +58,7 @@ export class Heartbeat<TimerRef> {
 	 * yet, functions identical to `start`.
 	 */
 	public keepAlive(): void {
+		this.logger.info('Keep alive');
 		this.clearTimer();
 		this.start();
 	}

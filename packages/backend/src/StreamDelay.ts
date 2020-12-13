@@ -1,7 +1,5 @@
 import { TimerControls } from './Util';
 
-export type DelayResetter = () => void;
-
 /**
  * Function to be called surrounding the wait. First, before the wait, it is called
  * with the duration of the upcoming delay in milliseconds. The function returned from this
@@ -9,7 +7,7 @@ export type DelayResetter = () => void;
  * a function used to reset the wait duration, equivalent to calling `reset` on this
  * `StreamDelay`
  */
-export type DelayHandler<T> = (delay: number) => (resetDelay: DelayResetter) => T;
+export type DelayHandler = (delay: number) => () => void;
 
 /**
  * Manages the duration for retrying the Twitter API 2.0 stream endpoints for the various scenarios
@@ -67,18 +65,19 @@ export class StreamDelay<TimerRef> {
 		}
 	}
 
-	private waitForDelay<T>(runBeforeDelay: DelayHandler<T>): Promise<T> {
+	private waitForDelay(runBeforeDelay: DelayHandler): Promise<void> {
 		this.isWaiting = true;
 		const runAfterDelay = runBeforeDelay(this.delay);
 		return new Promise((resolve) => {
 			this.timer = this.timerControls.setTimeout(() => {
 				this.isWaiting = false;
-				resolve(runAfterDelay(this.resetDelay.bind(this)));
+				runAfterDelay();
+				resolve();
 			}, this.delay);
 		});
 	}
 
-	private async waitAndInc<T>(f: DelayHandler<T>, incFn: () => void): Promise<T> {
+	private async waitAndInc(f: DelayHandler, incFn: () => void): Promise<void> {
 		const x = await this.waitForDelay(f);
 		incFn();
 		return x;
@@ -89,7 +88,7 @@ export class StreamDelay<TimerRef> {
 	 * for retry delays in the case of receiving a "TooManyRequests" response from the API.
 	 * @param f Function to be called surrounding the wait.
 	 */
-	public async waitAfterTooManyRequests<T>(f: DelayHandler<T>): Promise<T> {
+	public async waitAfterTooManyRequests(f: DelayHandler): Promise<void> {
 		return this.waitAndInc(f, this.incDelayTooManyRequests.bind(this));
 	}
 
@@ -98,7 +97,7 @@ export class StreamDelay<TimerRef> {
 	 * for retry delays in the case of miscellaneous network errors.
 	 * @param f Function to be called surrounding the wait.
 	 */
-	public async waitAfterNetworkError<T>(f: DelayHandler<T>): Promise<T> {
+	public async waitAfterNetworkError(f: DelayHandler): Promise<void> {
 		return this.waitAndInc(f, this.incDelayNetworkError.bind(this));
 	}
 
@@ -107,7 +106,7 @@ export class StreamDelay<TimerRef> {
 	 * for retry delays in the case of miscellanous HTTP Errors.
 	 * @param f Function to be called surrounding the wait.
 	 */
-	public async waitAfterHTTPError<T>(f: DelayHandler<T>): Promise<T> {
+	public async waitAfterHTTPError(f: DelayHandler): Promise<void> {
 		return this.waitAndInc(f, this.incDelayHTTPError.bind(this));
 	}
 

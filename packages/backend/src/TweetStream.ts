@@ -9,11 +9,32 @@ import { Dispatcher } from './Dispatcher';
 import { Heartbeat } from './Heartbeat';
 import { StreamOptions } from './StreamOptions';
 import { Tweet, WaitingUntilDelay } from './Messages';
+import { Logger } from './Logger';
 
 const qsOpts: qs.IStringifyOptions = {
 	arrayFormat: 'comma',
 	allowDots: true,
 };
+
+/**
+ * A more idiomatic way to encapsulate a `Response` that should be thrown.
+ */
+class CannotConnect extends Error {
+	private innerResponse: Response;
+
+	public constructor(res: Response) {
+		super();
+		this.innerResponse = res;
+	}
+
+	public get response(): Response {
+		return this.innerResponse;
+	}
+
+	public toString(): string {
+		return `CannotConnect: ${this.innerResponse.status} - ${this.innerResponse.statusText}`;
+	}
+}
 
 interface TooManyRequestsResponse extends Response {
 	status: 429;
@@ -21,16 +42,6 @@ interface TooManyRequestsResponse extends Response {
 
 const isTooManyRequestsResponse = (x: Response): x is TooManyRequestsResponse =>
 	x.status === 429;
-
-const logTooManyRequests = (_: TooManyRequestsResponse): void => {
-	console.log('429: TooManyRequests');
-};
-const logHTTPError = (e: Response): void => {
-	console.log(`HTTP Error: ${e.status}`);
-};
-const logUnknown = (e: unknown): void => {
-	console.log(`Unknown error: ${e}`);
-};
 
 interface FetchOpts {
 	method: 'GET';
@@ -43,15 +54,6 @@ type FetchFn = (url: string, opts: FetchOpts) => Promise<Response>;
 const keepAliveToken = '\r\n';
 type KeepAliveToken = typeof keepAliveToken;
 const isKeepAliveToken = (x: unknown): x is KeepAliveToken => x === keepAliveToken;
-
-const logDelay = (delay: number): void => {
-	if (delay === 0) {
-		console.log('Retrying immediately');
-		return;
-	}
-	const untilDate = new Date(Date.now() + delay);
-	console.log(`Retrying at ${untilDate.toISOString()}`);
-};
 
 /**
  * Manages and dispatches content from a Twitter API 2.0 filtered stream.
@@ -69,16 +71,45 @@ export class TweetStream<T> {
 
 	private streamOptions: StreamOptions | null = null;
 
+	private logger: Logger;
+
 	/**
 	 * @param fetchFn HTTP request function to use. Requires a narrow subset of `window.fetch`'s
 	 * functionality.
 	 * @see {@link https://nodejs.org/package/node-fetch}
 	 * @param timerControls Implementation for `setTimeout` and `clearTimeout`.
 	 */
-	public constructor(fetchFn: FetchFn, timerControls: TimerControls<T>) {
+	public constructor(logger: Logger, fetchFn: FetchFn, timerControls: TimerControls<T>) {
 		this.timerControls = timerControls;
 		this.streamDelay = new StreamDelay(timerControls);
 		this.fetchFn = fetchFn;
+		this.logger = logger;
+	}
+
+	public logTooManyRequests(_: TooManyRequestsResponse): void {
+		this.logger.info('429: TooManyRequests');
+	}
+
+	public logHTTPError(e: Response): void {
+		this.logger.info(`HTTP Error: ${e.status}`);
+	}
+
+	public logUnknown(e: unknown): void {
+		this.logger.info(`Unknown error: ${e}`);
+	}
+
+	public logAborted(e: unknown): void {
+		this.logger.info(`Stream aborted: ${e}`);
+		this.logger.info('Retrying immediately');
+	}
+
+	public logDelay(delay: number): void {
+		if (delay === 0) {
+			this.logger.info('Retrying immediately');
+			return;
+		}
+		const untilDate = new Date(Date.now() + delay);
+		this.logger.info(`Retrying at ${untilDate.toISOString()}`);
 	}
 
 	private createWritableDelegator(heartbeat: Heartbeat<T>): NodeJS.WritableStream {
@@ -93,7 +124,7 @@ export class TweetStream<T> {
 				if (!isKeepAliveToken(res)) {
 					this.listeners.send(new Tweet(res));
 
-					if (cb) {
+					if (typeof cb === 'function') {
 						cb(null);
 					}
 				}
@@ -105,8 +136,9 @@ export class TweetStream<T> {
 	}
 
 	private async streamTweets(): Promise<void> {
+		this.logger.info('Attempting stream');
 		const controller = new AbortController();
-		const heartbeat = new Heartbeat(controller, this.timerControls);
+		const heartbeat = new Heartbeat(this.logger, controller, this.timerControls);
 		const url = buildURL(`/2/tweets/search/stream?${qs.stringify(this.streamOptions, qsOpts)}`);
 		heartbeat.start();
 		const x = await this.fetchFn(url, {
@@ -118,42 +150,60 @@ export class TweetStream<T> {
 			x.body.pipe(this.createWritableDelegator(heartbeat));
 		} else {
 			heartbeat.end();
-			throw x;
+			throw new CannotConnect(x);
 		}
+
+		// Wait for the entire stream to end. The contents of the promise returned by `.buffer()`
+		// should have already been handled by this point by the WriteStream created by
+		// `createWritableDelegator`.
+		this.logger.info('Waiting for buffer');
+		await x.buffer();
+		this.logger.info('Buffer done');
 		heartbeat.end();
 	}
 
 	private async fetch(): Promise<void> {
 		try {
 			await this.streamTweets();
-			console.log('Stream ended');
 			this.streamDelay.reset();
 		} catch (e: unknown) {
-			if (e instanceof Response && isTooManyRequestsResponse(e)) {
-				logTooManyRequests(e);
-				this.streamDelay.waitAfterTooManyRequests((delay) => {
-					logDelay(delay);
+			await this.waitAfterError(e);
+		}
+		return this.fetch();
+	}
+
+	private waitAfterError(e: unknown): Promise<void> {
+		return new Promise((resolve) => {
+			if (e instanceof CannotConnect && isTooManyRequestsResponse(e.response)) {
+				this.logTooManyRequests(e.response);
+				return this.streamDelay.waitAfterTooManyRequests((delay) => {
+					this.logDelay(delay);
 					this.listeners.send(new WaitingUntilDelay(delay));
-					return () => this.fetch();
-				});
-			} else if (e instanceof Response) {
-				logHTTPError(e);
-				this.streamDelay.waitAfterHTTPError((delay) => {
-					logDelay(delay);
-					this.listeners.send(new WaitingUntilDelay(delay));
-					return () => this.fetch();
-				});
-			} else {
-				logUnknown(e);
-				this.streamDelay.waitAfterNetworkError((delay) => {
-					logDelay(delay);
-					this.listeners.send(new WaitingUntilDelay(delay));
-					return () => this.fetch();
+					return resolve;
 				});
 			}
-			return;
-		}
-		this.fetch();
+
+			if (e instanceof CannotConnect) {
+				this.logHTTPError(e.response);
+				return this.streamDelay.waitAfterHTTPError((delay) => {
+					this.logDelay(delay);
+					this.listeners.send(new WaitingUntilDelay(delay));
+					return resolve;
+				});
+			}
+
+			if (e instanceof Error && e.name === 'AbortError') {
+				this.logAborted(e);
+				return this.timerControls.setTimeout(() => resolve(), 1);
+			}
+
+			this.logUnknown(e);
+			return this.streamDelay.waitAfterNetworkError((delay) => {
+				this.logDelay(delay);
+				this.listeners.send(new WaitingUntilDelay(delay));
+				return resolve;
+			});
+		});
 	}
 
 	/**
@@ -164,7 +214,7 @@ export class TweetStream<T> {
 	public registerListener(f: ChunkConsumer): string {
 		const id = this.listeners.register(f);
 		if (!this.hasInitialized) {
-			console.log('Starting stream fetch');
+			this.logger.info('Starting stream fetch');
 			this.hasInitialized = true;
 			this.fetch();
 		}

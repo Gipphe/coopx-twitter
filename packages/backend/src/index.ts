@@ -11,6 +11,7 @@ import { buildURL } from './Util';
 import { mkHeaders, port } from './Env';
 import { TweetStream } from './TweetStream';
 import { StreamOptions } from './StreamOptions';
+import { ConsoleLogger } from './Logger';
 
 const streamOptions: StreamOptions = {
 	expansions: [
@@ -79,7 +80,8 @@ const app = express()
 
 const server = http.createServer(app);
 const wss = new ws.Server({ server });
-const tweetStream = new TweetStream(fetch, global);
+const logger = new ConsoleLogger();
+const tweetStream = new TweetStream(logger, fetch, global);
 
 tweetStream.setStreamOptions(streamOptions);
 
@@ -87,14 +89,14 @@ wss.on('connection', (socket: WebSocket) => {
 	const id = tweetStream.registerListener((data: string): void => {
 		socket.send(data);
 	});
-	console.log(`New connection: ${id}`);
+	logger.info(`New connection: ${id}`);
 
 	socket.on('close', () => {
-		console.log(`Closed connection: ${id}`);
+		logger.info(`Closed connection: ${id}`);
 		tweetStream.unregisterListener(id);
 	});
 });
 
 server.listen(port, () => {
-	console.log(`Started on port ${port}`);
+	logger.info(`Started on port ${port}`);
 });
